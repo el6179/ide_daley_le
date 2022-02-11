@@ -4,8 +4,7 @@
 // 2.5 V static (always on) reference
 // Daniel Valvano
 // June 11, 2015
-// Thomas was here
-// Evon was here
+
 // Modified
 // LJBeato
 // March 2021
