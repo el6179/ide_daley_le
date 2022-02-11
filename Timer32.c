@@ -55,11 +55,11 @@ void Timer32_1_Init(void(*task)(void), unsigned long period, enum timer32divider
 	
 	// timer reload value
 	// TIMER32_LOAD1
-  ;    
+  TIMER32_LOAD1 = 0x00001000;    
 	
 	// clear Timer32 Timer 1 interrupt
 	// TIMER32_INTCLR1
-  ;   
+  TIMER32_INTCLR1 = 0x00000000;   
 
 	
   // bits31-8=X...X,   reserved
@@ -72,7 +72,9 @@ void Timer32_1_Init(void(*task)(void), unsigned long period, enum timer32divider
   // bit0,             1=one shot mode, 0=wrapping mode
 	
 	// TIMER32_CONTROL1, enable, periodic, 32 bit counter
-  ;
+  TIMER32_CONTROL1 |= BIT7;
+  TIMER32_CONTROL1 |= BIT6;
+  TIMER32_CONTROL1 |= BIT1;
 	
 	// interrupts enabled in the main program after all devices initialized
 	// NVIC_IPR6
@@ -80,7 +82,7 @@ void Timer32_1_Init(void(*task)(void), unsigned long period, enum timer32divider
 	
 	// enable interrupt 25 in NVIC, NVIC_ISER0
 	// NVIC_ISER0
-  ;         
+  NVIC_ISER0 |= 0x01000000;         
 
   EndCritical(sr);
 }
@@ -91,14 +93,14 @@ void T32_INT1_IRQHandler(void)
 {
 	// acknowledge Timer32 Timer 1 interrupt
 	// TIMER32_INTCLR1
-  ;    
+  TIMER32_INTCLR1 = 0x00000000;    
 	
 	// execute user task
   (*Timer32_1_PeriodicTask)();               
 	
 	// timer reload value to start the timer again
 	// TIMER32_LOAD1
-	;    
+	TIMER32_LOAD1 = 0x016E3600;    
 }
 
 // ***************** Timer32_2_Init ****************
@@ -126,11 +128,11 @@ void Timer32_2_Init(void(*task)(void), unsigned long period, enum timer32divider
 	
 	// timer reload value
 	// TIMER32_LOAD2
-  ;    
+  TIMER32_LOAD2 = 0x00001000;    
 	
 	// clear Timer32 Timer 2 interrupt
 	// TIMER32_INTCLR2
-  ;  
+  TIMER32_INTCLR2 = 0x00000000;  
 
   
   // bits31-8=X...X,   reserved
@@ -143,14 +145,16 @@ void Timer32_2_Init(void(*task)(void), unsigned long period, enum timer32divider
   // bit0,             1=one shot mode, 0=wrapping mode
 	
   //TIMER32_CONTROL2   
-  ;
+  TIMER32_CONTROL2 |= BIT7;
+  TIMER32_CONTROL2 |= BIT6;
+  TIMER32_CONTROL2 |= BIT1;
 
 	// interrupts enabled in the main program after all devices initialized
   NVIC_IPR6 = (NVIC_IPR6&0xFFFF00FF)|0x00004000; // priority 2
 	
 	// enable interrupt 26 in NVIC, NVIC_ISER0
 	// NVIC_ISER0
-  ;         
+  NVIC_ISER0 |= 0x02000000;         
 
   EndCritical(sr);
 }
@@ -161,13 +165,13 @@ void T32_INT2_IRQHandler(void)
 {
 	// acknowledge Timer32 Timer 1 interrupt
 	// TIMER32_INTCLR2
-  ;    
+  TIMER32_INTCLR2 = 0x00000000;    
 	
 	// execute user task
   (*Timer32_2_PeriodicTask)();               
 	
 	// timer reload value
 	// TIMER32_LOAD2
-	;    
+	TIMER32_LOAD2 = 0x016E3600;    
 
 }
