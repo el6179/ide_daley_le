@@ -45,21 +45,24 @@ void LED2_Init(void){
 }
 
 void LED1_On(void){
-	// turn LED on, Color White
-	P2->OUT |= BIT0;
-  P2->OUT |= BIT1;
-  P2->OUT |= BIT2;
+	// turn LED1 on
+	P1->OUT |= BIT0;
 }
 
 void LED1_Off(void){
-	// turn LED off
+	// turn LED1 off
+	P1->OUT &=~BIT0;
+}
+
+void LED2_Off(void){
+	// turn LED2 off
 	P2->OUT &=~BIT0;
   P2->OUT &=~BIT1;
   P2->OUT &=~BIT2;
 }
 
-void LED_ON(int color){
-	LED1_Off();
+void LED2_On(int color){
+	LED2_Off();
 	switch(color) {
    case 0:
       //LED1_Off();
@@ -100,4 +103,12 @@ void LED_ON(int color){
    default:
      break;
   }
+}
+
+BOOLEAN LED1_State(void){
+  BOOLEAN state = FALSE;
+  if (P1->OUT & BIT0){
+    state = TRUE;
+  }
+  return (state);
 }
