@@ -68,7 +68,7 @@ void ADC0_InitSWTriggerCh6(void)
 	// ------------------------------------------------------------------
 	// 4) single, SMCLK, on, disabled, /1, 32 clocks, SHM	pulse-mode
 	// ADC14->CTL0
-  ADC14->CTL0 = 0b00000100001000000011001100010000;       
+  ADC14->CTL0 = 0x04203310;     
 	
 	
 	
@@ -83,7 +83,7 @@ void ADC0_InitSWTriggerCh6(void)
 	//
 	// 5) ADC14MEM0, 14-bit, ref on, regular power
 	// ADC14->CTL1
-  ADC14->CTL1 = 0b110000;          
+  ADC14->CTL1 = 0x30;          
 		
 		
 
@@ -108,8 +108,8 @@ void ADC0_InitSWTriggerCh6(void)
 	// 7) no interrupts
 	// ADC14->IER0
 	// ADC14->IER1
-  ADC14->IER0 = 0b000000011000110;                     
-  ADC14->IER1 = 0b000000011000110;                     // no interrupts
+  ADC14->IER0 = 0x0000;                     
+  ADC14->IER1 = 0x0000;                     // no interrupts
 	//
 	// P4.7 is Analog In A6
 	// 8) analog mode on A6, P4.7
