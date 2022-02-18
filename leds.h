@@ -14,5 +14,6 @@ void LED1_Off(void);
 BOOLEAN LED1_State(void);
 
 void LED_ON(int);
+void LED2_On(int);
 
 #endif
