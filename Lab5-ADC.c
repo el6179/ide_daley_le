@@ -9,7 +9,6 @@
 */
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <math.h>
 
 #include "msp.h"
@@ -27,101 +26,126 @@
 
 BOOLEAN Timer1RunningFlag = FALSE;
 BOOLEAN Timer2RunningFlag = FALSE;
-
+extern uint32_t SystemCoreClock;
 unsigned long MillisecondCounter = 0;
 
-char DecToHex(int x){
-  char h;
-  if (x > 9){
-    switch(x) {
-     case 10:
-        h = 'A';
-        break;
-     case 11:
-        h = 'B';
-        break;
-     case 12:
-        h = 'C';
-        break;
-     case 13:
-        h = 'D';
-        break;
-     case 14:
-        h = 'E';
-        break;
-     case 15:
-        h = 'F';
-        break;
-     default:
-       break;
-    }
-  }
-  else
-    h = x + '0';
-  
-  return (h);
-}
 
+void PORT1_IRQHandler(void){
+    if(P1->IFG & BIT1){
+        P1->IFG &= ~BIT1;
+        Timer1RunningFlag = !Timer1RunningFlag;
+    }
+		if(P1->IFG & BIT4){
+        P1->IFG &= ~BIT4;
+        Timer2RunningFlag = !Timer2RunningFlag;
+    }
+}
 // Interrupt Service Routine for Timer32-1
 void Timer32_1_ISR(void){
-
+    char temp[64];
+    unsigned int analogIn = ADC_In();
+    if (Timer1RunningFlag){
+        sprintf(temp,"\r\n\nHex: %x \r\nDec: %u", analogIn, analogIn);
+        uart0_put(temp);
+    }
 }
+
 // Interrupt Service Routine
 void Timer32_2_ISR(void){
-
+    char temp[64];
+    unsigned int analogIn = ADC_In();
+		unsigned int volt, dC, dF;
+		if (Timer2RunningFlag){
+				volt = (analogIn * (3300.0/16384.0));
+				dC = (volt - 500)/10;
+				dF = (dC*(9/5))+32;
+			sprintf(temp,"\r\nAnalog output: %u; Temp: %u C, %u F", analogIn, dC, dF);
+        uart0_put(temp);
+    }
 }
 
-void ADC_MEM0_Print(void){
-  //wait for MEM0 to haveconversion result
-  while(!(ADC14IFGR0 & BIT0)){}
-  int dVal = 0;
-  int dc = 0;
-  int dMask = 0x1;
-  int n;
-  char hPrint[4];
-  int hc = 4;
-  if (ADC14IFGR0 & BIT0){
-    for (int x = 0; x<16; x++){
-      n = (dMask<<x);
-      if (ADC14MEM0 & n){
-        dc += pow(2,x);
-      }
-      if (dc%4 == 3){
-        dVal += dc;
-        hPrint[hc] = DecToHex(dc);
-      }
-    }
-  }
-	int dSize = log10(dVal) + 1;
-  char dPrint[dSize];
-	for (int i = dSize-1; i >=0; --i) {
-		dPrint[i]= (dVal%10) + '0';
-		dVal /= 10;
-	}
+void Switch1_Interrupt_Init(void){
+	// disable interrupts
+	DisableInterrupts();
+	// initialize the Switch as per previous lab
+	Switch1_Init();
 	
-  uart0_put("\r\nHex: ");
-  uart0_put(hPrint);
-  uart0_put("\r\nDec: ");
-  uart0_put(dPrint);
+	//7-0 PxIFG RW 0h Port X interrupt flag
+	//0b = No interrupt is pending.
+	//1b = Interrupt is pending.
+	// clear flag1 (reduce possibility of extra interrupt)	
+    P1->IFG &= ~BIT1; 
+
+	//7-0 PxIE RW 0h Port X interrupt enable
+	//0b = Corresponding port interrupt disabled
+	//1b = Corresponding port interrupt enabled	
+	// arm interrupt on  P1.1	
+    P1->IE |= BIT1;  
+
+	//7-0 PxIES RW Undefined Port X interrupt edge select
+  //0b = PxIFG flag is set with a low-to-high transition.
+  //1b = PxIFG flag is set with a high-to-low transition
+	// now set the pin to cause falling edge interrupt event
+	// P1.1 is falling edge event
+    P1->IES |= BIT1; 
+	
+	// now set the pin to cause falling edge interrupt event
+  NVIC_IPR8 = (NVIC_IPR8 & 0x00FFFFFF)|0x40000000; // priority 2
+	
+	// enable Port 1 - interrupt 35 in NVIC	
+  NVIC_ISER1 = 0x00000008;  
+	
+	// enable interrupts  (// clear the I bit	)
+  EnableInterrupts();              
+	
+}
+
+void Switch2_Interrupt_Init(void)
+{
+	// disable interrupts
+	DisableInterrupts();
+	
+	// initialize the Switch as per previous lab
+	Switch2_Init();
+	
+	  P1->IFG &= ~BIT4;
+	// now set the pin to cause falling edge interrupt event
+	// P1.4 is falling edge event
+    P1->IES |= BIT4;
+  
+	// clear flag4 (reduce possibility of extra interrupt)
+    //P1->IFG &= ~BIT4; 
+  
+	// arm interrupt on P1.4 
+    P1->IE |= BIT4;     
+	
+	// now set the pin to cause falling edge interrupt event
+  NVIC_IPR8 = (NVIC_IPR8&0x00FFFFFF)|0x40000000; // priority 2
+	
+	// enable Port 1 - interrupt 35 in NVIC
+  NVIC_ISER1 = 0x00000008;         
+	
+	// enable interrupts  (// clear the I bit	)
+  EnableInterrupts();              
+	
 }
 
 // main
 int main(void){
-	//char temp[64];
-	//unsigned int analogIn = 0;
 	//initializations
 	uart0_init();
 	uart0_put("\r\nLab5 ADC demo\r\n");
-
-	
+    // Set the Timer32-1 to 1Hz (0.5 sec between interrupts)
+	Timer32_1_Init(&Timer32_1_ISR, SystemCoreClock/2, T32DIV1); // initialize Timer A32-1;
+	Timer32_2_Init(&Timer32_2_ISR, SystemCoreClock/2, T32DIV1); // initialize Timer A32-2;
 
 	LED1_Init();
 	LED2_Init();
-	Switch2_Init();
+  Switch1_Interrupt_Init();
+  Switch2_Interrupt_Init();
 	ADC0_InitSWTriggerCh6();
 	EnableInterrupts();
-  while(1){
-		ADC_MEM0_Print();
-  }
+    while(1){
+        WaitForInterrupt();
+    }
 }
-
