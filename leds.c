@@ -51,14 +51,14 @@ void LED1_On(void){
 
 void LED1_Off(void){
 	// turn LED1 off
-	P1->OUT &=~BIT0;
+	P1->OUT &= ~BIT0;
 }
 
 void LED2_Off(void){
 	// turn LED2 off
-	P2->OUT &=~BIT0;
-  P2->OUT &=~BIT1;
-  P2->OUT &=~BIT2;
+	P2->OUT &= ~BIT0;
+  P2->OUT &= ~BIT1;
+  P2->OUT &= ~BIT2;
 }
 
 void LED2_On(int color){
@@ -101,6 +101,7 @@ void LED2_On(int color){
       P2->OUT |= BIT2;
       break;
    default:
+		  LED2_Off();
      break;
   }
 }
