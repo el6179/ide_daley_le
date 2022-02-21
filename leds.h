@@ -11,8 +11,9 @@ void LED2_Init(void);
 void LED1_On(void);
 void LED1_Off(void);
 
-BOOLEAN LED1_State(void);
+void LED2_Off(void);
+void LED2_On(int);
 
-void LED_ON(int);
+BOOLEAN LED1_State(void);
 
 #endif
