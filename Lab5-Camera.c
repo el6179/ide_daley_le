@@ -108,6 +108,8 @@ int main(void)
 	uart0_put("\r\nINIT Camera CLK and SI\r\n");
 	uart0_put("\r\nINIT ADC\r\n");	
 	INIT_Camera();
+	ADC0_InitSWTriggerCh6();
+  
 	
 	uart0_put("\r\nINIT Switch 2\r\n");
 	Switch2_Init();
