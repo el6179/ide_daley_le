@@ -24,7 +24,7 @@ BOOLEAN g_sendData = FALSE;
 uint16_t line[128];
 
 int colorIndex = 0;
-BYTE colors[7] = { RED, GREEN, BLUE, CYAN, MAGENTA, YELLOW, WHITE };
+int colors[7] = { 1, 2, 3, 4, 5, 6, 7};
 
 BOOLEAN Timer1RunningFlag = FALSE;
 BOOLEAN Timer2RunningFlag = FALSE;
@@ -40,28 +40,6 @@ unsigned long MillisecondCounter = 0;
 //  0          00        1     0       Input, rising edge trigger, interrupt
 //  0          00        1     1       Input, falling edge trigger, interrupt
 //
-
-void Switch1_Init(void)
-{
-	// configure PortPin for Switch 1 and Switch2 as port I/O 
-     P1->SEL0 &= ~BIT1;
-	   P1->SEL1 &= ~BIT1;
-	   
-	// configure as input
-     P1->DIR &= ~BIT1;
-	   P1->REN |= BIT1;
-              
-}
-
-void Switch2_Init(void)
-{
-	// Configure port and pins
-     P1->SEL0 &= ~BIT4;
-	   P1->SEL1 &= ~BIT4;
-	// configure as input
-     P1->DIR &= ~BIT4;
-	   P1->REN |= BIT4;	
-}
 
 void Switch1_Interrupt_Init(void)
 {
@@ -107,12 +85,13 @@ void Switch2_Interrupt_Init(void)
 	// initialize the Switch as per previous lab
 	Switch2_Init();
 	
+	  P1->IFG &= ~BIT4;
 	// now set the pin to cause falling edge interrupt event
 	// P1.4 is falling edge event
     P1->IES |= BIT4;
   
 	// clear flag4 (reduce possibility of extra interrupt)
-    P1->IFG &= ~BIT4; 
+    //P1->IFG &= ~BIT4; 
   
 	// arm interrupt on P1.4 
     P1->IE |= BIT4;     
@@ -136,7 +115,8 @@ void Switch2_Interrupt_Init(void)
 
 void PORT1_IRQHandler(void)
 {
-	float numSeconds = 0.0;
+	//float numSeconds = 0.0;
+  float numSeconds = 0;
 	char temp[32];
 
 	// First we check if it came from Switch1 ?
@@ -145,14 +125,24 @@ void PORT1_IRQHandler(void)
 		// acknowledge P1.1 is pressed, by setting BIT1 to zero - remember P1.1 is switch 1
 		// clear flag, acknowledge
     P1->IFG &= ~BIT1;     
-
+    g_sendData = !g_sendData;
+	  
   }
 	// Now check to see if it came from Switch2 ?
-  if(P1->IFG & BIT4)
-	{
+  if(P1->IFG & BIT4){
 		// acknowledge P1.4 is pressed, by setting BIT4 to zero - remember P1.4 is switch 2
     P1->IFG &= ~BIT4;     // clear flag4, acknowledge
 
+		colorIndex = (colorIndex + 1) % 7;
+    if (colorIndex != 1){
+      numSeconds = (float)MillisecondCounter/2.0;
+      sprintf(temp,"\r\nTime Elasped: %f", numSeconds);
+      uart0_put(temp);
+    }
+    if (colorIndex == 0){
+      uart0_put("\r\n LED2 OFF");
+    }
+    MillisecondCounter = 0;
   }
 }
 
@@ -163,11 +153,10 @@ void PORT1_IRQHandler(void)
 //
 void Timer32_1_ISR(void)
 {
-	if (LED1_State() == FALSE )
-	{
+	if (LED1_State() == FALSE && g_sendData)
 		LED1_On();
-	}
-	else LED1_Off();
+	else 
+    LED1_Off();
 }
 
 //
@@ -177,9 +166,10 @@ void Timer32_1_ISR(void)
 //
 void Timer32_2_ISR(void)
 {
-
-		MillisecondCounter++;
-
+    LED2_On(colorIndex);
+    MillisecondCounter++;
+  if (colorIndex== 0)
+    MillisecondCounter=0;
 }
 
 
