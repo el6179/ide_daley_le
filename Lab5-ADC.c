@@ -54,12 +54,14 @@ void Timer32_1_ISR(void){
 void Timer32_2_ISR(void){
     char temp[64];
     unsigned int analogIn = ADC_In();
-		unsigned int volt, dC, dF;
+		double volt, mV, dC, dF;
 		if (Timer2RunningFlag){
-				volt = (analogIn * (3300.0/16384.0));
-				dC = (volt - 500)/10;
-				dF = (dC*(9/5))+32;
-			sprintf(temp,"\r\nAnalog output: %u; Temp: %u C, %u F", analogIn, dC, dF);
+				volt = (analogIn / 16384.0);
+				mV = volt * 3300.0;
+				dC = (mV - 500.0)/20.0;
+				dF = (dC*(9.0/5.0))+32.0;
+			sprintf(temp,"\r\nAnalog output: %u; Temp: %.3f C, %.3f F", analogIn, dC, dF);
+			//sprintf(temp,"\r\nAnalog output: %u; volt : %f, mV: %f; Temp: %f C", analogIn, volt, mV, dC);
         uart0_put(temp);
     }
 }
@@ -149,3 +151,4 @@ int main(void){
         WaitForInterrupt();
     }
 }
+
