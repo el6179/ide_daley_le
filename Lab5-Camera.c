@@ -31,11 +31,11 @@
 // To do that: Edit system_msp432p401r.c
 //             Change:   #define  __SYSTEM_CLOCK    3000000
 //             To:       #define  __SYSTEM_CLOCK    48000000 
-// ADC will be P4.7 A6
+// ADC will be P4.7 A6 - GREEN WIRE
 //
-// SI Pin will be P5.5 A0
+// SI Pin will be P5.5 A0 - ORANGE WIRE
 //
-// CLK Pin will be P5.4 A1//
+// CLK Pin will be P5.4 A1// - BLUE WIRE
 //
 
 // line stores the current array of camera data
