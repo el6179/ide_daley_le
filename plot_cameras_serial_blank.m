@@ -16,15 +16,15 @@
 %delete(instrfindall)
 %
 
-function plot_cams 
+function plot_cameras_serial_blank 
 
 %Send over bluetooth or serial
 serialPort = 'COM3';
 serialObject = serial(serialPort);
 %configure serial connection
 serialObject.BaudRate = 115200; %(Default)
-%serialObject.BaudRate = 115200;
 %serialObject.FlowControl = 'software';
+%serialObject = serialport(serialPort,1152000);
 
 %Initiate serial connection
 fopen(serialObject);
@@ -35,8 +35,6 @@ finishup = onCleanup(@() myCleanupFun(serialObject));
 % Instantiate variables
 count = 1;
 trace = zeros(1, 128); %Stored Values for Raw Input
-bintrace = zeros(1,128); %Stored Values for Edge Detection
-smoothtrace  = zeros(1,128); %Stored Values for 5-Point Averager
 
 while (1)
     % Check for data in the stream
@@ -45,7 +43,7 @@ while (1)
         %val
         if ((val == -1) || (val == -3)) % -1 and -3 are start keywords
             count = 1;
-            val
+            
         elseif (val == -2) % End camera1 tx
             if (count == 128)
                 plotdata(trace, 1);
@@ -80,11 +78,26 @@ plot(trace);
 %set(figureHandle,'Visible','on');
 
 %SMOOTH AND PLOT
-smoothtrace = trace;
+
+bintrace = zeros(1,128); %Stored Values for Edge Detection
+smoothtrace  = zeros(1,128); %Stored Values for 5-Point Averager
+%smoothtrace = movmean(trace,5);
+x = 0;
 for i = 2:127
     %5-point Averager
-    %INSERT CODE
-end;
+    if (i < 125)
+        for j = 0:4
+            x = x + trace(i+j);
+        end
+        smoothtrace(i) = x/5;
+    else
+        y = (128-i);
+        for t = 0:y
+            x = x + trace(i+t);
+        end
+        smoothtrace(i) = x/y;
+    end
+end
 subplot(4,2,cam+2);
 %figure(smoothhand);
 plot(smoothtrace);
@@ -94,7 +107,11 @@ plot(smoothtrace);
 maxval = max(smoothtrace);
 for i = 1:128
     %Edge detection (binary 0 or 1)
-    %INSERT CODE
+    if (trace(i) >= maxval)
+        bintrace(i) = 1;
+    else 
+        bintrace(i) = 0;
+    end
 end
 drawnow;
 subplot(4,2,cam+4);
