@@ -19,12 +19,13 @@
 function plot_cameras_serial_blank 
 
 %Send over bluetooth or serial
-serialPort = 'COM3';
+serialPort = 'COM4';
 serialObject = serial(serialPort);
 %configure serial connection
-serialObject.BaudRate = 115200; %(Default)
+serialObject.BaudRate = 9600; %(Default)
 %serialObject.FlowControl = 'software';
-%serialObject = serialport(serialPort,1152000);
+% serialObject = serialport(serialPort,1152000);
+% serialObject.FlowControl = 'software';
 
 %Initiate serial connection
 fopen(serialObject);
@@ -35,17 +36,17 @@ finishup = onCleanup(@() myCleanupFun(serialObject));
 % Instantiate variables
 count = 1;
 trace = zeros(1, 128); %Stored Values for Raw Input
-
+fprintf('whlie start\n')
 while (1)
     % Check for data in the stream
     if serialObject.BytesAvailable
         val = fscanf(serialObject,'%i');
         %val
-        if ((val == -1) || (val == -3)) % -1 and -3 are start keywords
+        if ((val == -1) | (val == -3)) % -1 and -3 are start keywords
             count = 1;
             
         elseif (val == -2) % End camera1 tx
-            if (count == 128)
+            if (count == 129)
                 plotdata(trace, 1);
             end %otherwise there was an error and don't plot
             count = 1;
@@ -80,31 +81,16 @@ plot(trace);
 %SMOOTH AND PLOT
 
 bintrace = zeros(1,128); %Stored Values for Edge Detection
-smoothtrace  = zeros(1,128); %Stored Values for 5-Point Averager
-%smoothtrace = movmean(trace,5);
-x = 0;
-for i = 2:127
-    %5-point Averager
-    if (i < 125)
-        for j = 0:4
-            x = x + trace(i+j);
-        end
-        smoothtrace(i) = x/5;
-    else
-        y = (128-i);
-        for t = 0:y
-            x = x + trace(i+t);
-        end
-        smoothtrace(i) = x/y;
-    end
-end
+% smoothtrace  = zeros(1,128); %Stored Values for 5-Point Averager
+smoothtrace = movmean(trace,5);
+%5-point Averager
 subplot(4,2,cam+2);
 %figure(smoothhand);
 plot(smoothtrace);
 
 %THRESHOLD
 %calculate 1's and 0's via thresholding
-maxval = max(smoothtrace);
+maxval = mean(smoothtrace);
 for i = 1:128
     %Edge detection (binary 0 or 1)
     if (trace(i) >= maxval)
