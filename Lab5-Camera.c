@@ -5,7 +5,7 @@
 * LJBeato
 * 1/14/2021
 *
-* Filename: main_timer_template.c
+* Filename: main_camera_template.c
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -102,12 +102,13 @@ int main(void)
 	LED1_Init();
 	LED2_Init();
 	// remember that we double the desired frequency because we need to account
-	// for the toggle from hi to low.
 	//
-	Output_MCLK();
+	
 	uart0_put("\r\nINIT Camera CLK and SI\r\n");
 	uart0_put("\r\nINIT ADC\r\n");	
 	INIT_Camera();
+	//ADC0_InitSWTriggerCh6();
+  
 	
 	uart0_put("\r\nINIT Switch 2\r\n");
 	Switch2_Init();
