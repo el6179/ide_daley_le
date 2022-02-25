@@ -5,7 +5,7 @@
 * LJBeato
 * 1/14/2021
 *
-* Filename: main_timer_template.c
+* Filename: main_camera_template.c
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,11 +31,11 @@
 // To do that: Edit system_msp432p401r.c
 //             Change:   #define  __SYSTEM_CLOCK    3000000
 //             To:       #define  __SYSTEM_CLOCK    48000000 
-// ADC will be P4.7 A6 - GREEN WIRE
+// ADC will be P4.7 A6
 //
-// SI Pin will be P5.5 A0 - ORANGE WIRE
+// SI Pin will be P5.5 A0
 //
-// CLK Pin will be P5.4 A1// - BLUE WIRE
+// CLK Pin will be P5.4 A1//
 //
 
 // line stores the current array of camera data
@@ -102,13 +102,12 @@ int main(void)
 	LED1_Init();
 	LED2_Init();
 	// remember that we double the desired frequency because we need to account
-	// for the toggle from hi to low.
 	//
-	Output_MCLK();
+	
 	uart0_put("\r\nINIT Camera CLK and SI\r\n");
 	uart0_put("\r\nINIT ADC\r\n");	
 	INIT_Camera();
-	ADC0_InitSWTriggerCh6();
+	//ADC0_InitSWTriggerCh6();
   
 	
 	uart0_put("\r\nINIT Switch 2\r\n");
