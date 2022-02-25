@@ -55,11 +55,11 @@ void Timer32_1_Init(void(*task)(void), unsigned long period, enum timer32divider
 	
 	// timer reload value
 	// TIMER32_LOAD1
-  TIMER32_LOAD1 = 0x016E3600;    
+  TIMER32_LOAD1 = 0x2BF1F*2;    
 	
 	// clear Timer32 Timer 1 interrupt
 	// TIMER32_INTCLR1
-  TIMER32_INTCLR1 = 0x00000000;   
+  TIMER32_INTCLR1 = 0x00000001;   
 
 	
   // bits31-8=X...X,   reserved
@@ -100,7 +100,7 @@ void T32_INT1_IRQHandler(void)
 	
 	// timer reload value to start the timer again
 	// TIMER32_LOAD1
-	 TIMER32_LOAD1 = 0x016E3600;   
+	 TIMER32_LOAD1 = 0x2BF1F*2;   
   // TIMER32_LOAD1 = 0x00010000;	
 }
 
