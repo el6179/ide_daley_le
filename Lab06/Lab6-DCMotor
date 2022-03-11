@@ -10,7 +10,12 @@
 
 #include "msp.h"
 #include "uart.h"
+#include "TimerA.h"
+#include "leds.h"
+#include "Common.h"
 
+#define period 0.0001
+extern uint32_t SystemCoreClock;
 
 /**
  * Waits for a delay (in milliseconds)
@@ -27,55 +32,107 @@ void delay(int del){
 int main(void) {
 	// Initialize UART and PWM
 	// INSERT CODE HERE
-
-	// Print welcome over serial
-	put("Running... \n\r");
+	uart0_init();
+  LED1_Init();
+	LED2_Init();
 	
-	/* Part 1 - UNCOMMENT THIS
+	// Print welcome over serial
+	uart0_put("Running... \n\r");
+	
+	// Part 1 - UNCOMMENT THIS
 	// Generate 20% duty cycle at 10kHz
 	// INSERT CODE HERE
 	
-	for(;;) ;  //then loop forever
+	//TIMER_A0_PWM_Init((uint16_t)10000, 0.2, 1);
+	//TIMER_A2_PWM_Init(10000 , 0.2, 4);
+	
+	//for(;;) ;  //then loop forever
+	/* Part 2 - UNCOMMENT THIS */
+	uint16_t dc = 0;
+	uint16_t freq = 10000; // Frequency = 10 kHz 
+	uint16_t dir = 0;
+	char c = 48;
+	int i=0;
+	int forward = 1;
+	int phase = 0;
+	
+	TIMER_A0_PWM_Init(SystemCoreClock/(freq*4) , 0.0, 1);
+	TIMER_A0_PWM_Init(SystemCoreClock/(freq*4) , 0.0, 2);
+	
+	/*
+	 You can connect the DC motor based on lecture 11 slide 24 to move the DC motor
+	 in reverse and forward direction.
 	*/
 	
-	/* Part 2 - UNCOMMENT THIS
 	for(;;)  //loop forever
 	{
-		uint16_t dc = 0;
-		uint16_t freq = 10000; // Frequency = 10 kHz 
-		uint16_t dir = 0;
-		char c = 48;
-		int i=0;
 		
 		// 0 to 100% duty cycle in forward direction
 		for (i=0; i<100; i++) {
 		    // INSERT CODE HERE
-			
+			TIMER_A0_PWM_DutyCycle(0.01*i, 1);
 			delay(10);
 		}
 		
 		// 100% down to 0% duty cycle in the forward direction
 		for (i=100; i>=0; i--) {
 		    // INSERT CODE HERE
-			
+			TIMER_A0_PWM_DutyCycle(0.01*i, 1);
 			delay(10);
 		}
 		
 		// 0 to 100% duty cycle in reverse direction
 		for (i=0; i<100; i++) {
 		    // INSERT CODE HERE
-			
+			TIMER_A0_PWM_DutyCycle(0.01*i, 2);
 			delay(10);
 		}
 		
 		// 100% down to 0% duty cycle in the reverse direction
 		for (i=100; i>=0; i--) {
 		    // INSERT CODE HERE
-			
+			TIMER_A0_PWM_DutyCycle(0.01*i, 2);
 			delay(10);
 		}
 
 	}
+	/*
+	Wasn't sure how to do the servo motor, this was a template given.
 	*/
+	/*while(TRUE){
+		if (forward){
+			if (phase == 0) {
+				
+			  phase++;
+			} else if (phase == 1) {
+				
+				phase++;
+			} else if (phase == 2) {
+				
+				phase++;
+			} else {
+				
+				phase = 0;
+			}
+		} else  {
+		  if (phase == 0) {
+				
+			  phase++;
+			} else if (phase == 1) {
+				
+				phase++;
+			} else if (phase == 2) {
+				
+				phase++;
+			} else {
+				
+				phase = 0;
+			}
+		}
+		
+	}*/	
 	return 0;
 }
+
+
+
