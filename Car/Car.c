@@ -1,6 +1,6 @@
 /*
 TI Car
-Author : Evon Le
+Author : Evon Le, Thomas Engine Daley
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -95,6 +95,7 @@ void stop(void){/*Stop Car*/
 
 void smoothData(void){
 	int max=0;
+	int j=0;
 	if (g_sendData == TRUE){
 		for (int i=0;i<128;i++){
 			switch(i) {
@@ -114,16 +115,19 @@ void smoothData(void){
 					smooth[i] = (line[i-2]+line[i-1]+line[i]+line[i+1]+line[i+2])/5;
 					break;
 			}
-			/*if(smooth[i] > max){
+			if(smooth[i] > max){
 				max = smooth[i];
-				map[0]=i;
+				map[0] = i;
 			}
-			else if(smooth[i] < max){
-				map[1]=i-1;
-			}*/
 		}
+		while(map[1] == 0){
+			if (smooth[map[0]+j] < max){
+				map[1] = map[0]+j;
+			}
+			j++;
+		}
+		map[2] = max;
 	}
-	map[2] = max;
 }
 //return arr[x1,x2,ymax]
 void myDelay(int del){
