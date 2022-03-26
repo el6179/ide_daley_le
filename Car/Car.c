@@ -21,6 +21,9 @@ extern BOOLEAN g_sendData;
 
 static char str[100];
 
+uint16_t smooth[128];
+int map[3];
+
 void INIT_Camera(void)
 {
 	g_sendData = FALSE;
@@ -48,7 +51,7 @@ void INIT_Motors(void){
 	P3->OUT &= ~BIT7;
 	
 	// Center Servo Motor
-	TIMER_A2_PWM_Init(SystemCoreClock/(50*4), 0.42, 1);
+	TIMER_A2_PWM_Init(SystemCoreClock/(50*4), 0.0575, 1);
 }
 
 void INIT(){
@@ -56,9 +59,6 @@ void INIT(){
 	INIT_Camera();
 	// INIT Motors
 	INIT_Motors();
-	
-	// Init ADC
-	//ADC0_InitSWTriggerCh6();
 	
 	//UART, LED, SWITCHES INITS
 	uart0_init();
@@ -68,75 +68,120 @@ void INIT(){
 	Switch2_Init();
 }
 
-void readCamera(void){
-	if (g_sendData == TRUE){
-		
-	}
+void forward(void){
+	
+	TIMER_A0_PWM_DutyCycle(0.0, 1);	//Forwards Left
+	TIMER_A0_PWM_DutyCycle(0.2, 2);
+	TIMER_A0_PWM_DutyCycle(0.0, 3);//Forwards Right
+	TIMER_A0_PWM_DutyCycle(0.2, 4);
 }
 
+void backward(void){
+	TIMER_A0_PWM_DutyCycle(0.2, 1);	//Backwards Left
+	TIMER_A0_PWM_DutyCycle(0.0, 2);
+	TIMER_A0_PWM_DutyCycle(0.2, 3);	//Backwards Right
+	TIMER_A0_PWM_DutyCycle(0.0, 4);
+}
+
+void stop(void){/*Stop Car*/
+	TIMER_A0_PWM_DutyCycle(0.0, 1);
+	TIMER_A0_PWM_DutyCycle(0.0, 2);
+	TIMER_A0_PWM_DutyCycle(0.0, 3);
+	TIMER_A0_PWM_DutyCycle(0.0, 4);
+	//Disable Motor
+	P3->OUT &= ~BIT6;
+	P3->OUT &= ~BIT7;
+}
+
+void smoothData(void){
+	int max=0;
+	if (g_sendData == TRUE){
+		for (int i=0;i<128;i++){
+			switch(i) {
+				case 0:
+					smooth[i] = (line[0]+line[1]+line[2])/3;
+					break;
+				case 1:
+					smooth[i] = (line[0]+line[1]+line[2]+line[3])/4;
+					break;
+				case 126:
+					smooth[i] = (line[124]+line[125]+line[126]+line[127])/4;
+					break;
+				case 127:
+					smooth[i] = (line[125]+line[126]+line[127])/3;
+					break;
+				default:
+					smooth[i] = (line[i-2]+line[i-1]+line[i]+line[i+1]+line[i+2])/5;
+					break;
+			}
+			/*if(smooth[i] > max){
+				max = smooth[i];
+				map[0]=i;
+			}
+			else if(smooth[i] < max){
+				map[1]=i-1;
+			}*/
+		}
+	}
+	map[2] = max;
+}
+//return arr[x1,x2,ymax]
 void myDelay(int del){
-	/*
-	volatile int j = 0;
-	for (j = 0; j < 800000; j++){
-		;
-	}*/
-	
 	volatile int i;
 	for (i=0; i<del*50000; i++){
 		;// Do nothing
 	}
 }
+
 int main(void) {
 	DisableInterrupts();
 	INIT(); //Initialize
 	EnableInterrupts();
+	LED1_On();
 	uart0_put("Init Code\n\r");
+	P3->OUT |= BIT6;
+	P3->OUT |= BIT7;
+	myDelay(50);
+	//forward();
+	LED1_Off();
+	LED2_On(3);
 	for(;;){
-		/*
-			TIMER_A2_PWM_DutyCycle(0.28, 1);
-			myDelay(50);
-			TIMER_A2_PWM_DutyCycle(0.42, 1);
-			myDelay(50);
-			TIMER_A2_PWM_DutyCycle(0.56, 1);
-			myDelay(50);
-		*/
-	
-
+		smoothData();
 		if (g_sendData == TRUE) 
 		{
-			LED1_On();
+			LED1_On();/*
 			// send the array over uart
 			sprintf(str,"%i, ",-1); // start value
 			uart0_put(str);
 			for (int i = 0; i < 128; i++) 
 			{
-				sprintf(str,"%i, ", line[i]);
+				sprintf(str,"%i, ", smooth[i]);
 				uart0_put(str);
 			}
 			sprintf(str,"%i\n\r",-2); // end value
 			uart0_put(str);
-			LED1_Off();
+			LED1_Off();*/
+			sprintf(str,"x1 = %i, x2 = %i, ymax = %i \n\r", map[0], map[1], map[2]);
+				uart0_put(str);
 			g_sendData = FALSE;
 		}
 		// do a small delay
-		myDelay(75);
+		myDelay(25);
+		/*
+		smoothData();
+		if (map[2] < 11000){stop();}
 		
-		/*
-		for (int i=27;i <=50;i++){
-			LED2_On(i%7);
-			TIMER_A2_PWM_DutyCycle(0.01*i, 1);
-			myDelay(75);
-		}*/
-		/*
-		LED2_On(1);
-		TIMER_A2_PWM_DutyCycle(0.45, 1);
-		myDelay(100);
-		LED2_On(2);
-		TIMER_A2_PWM_DutyCycle(0.28, 1);
-		myDelay(100);
-		LED2_On(3);
-		TIMER_A2_PWM_DutyCycle(0.61, 1);
-		myDelay(100);
-		*/
+		double center = ((map[1]-map[0])/2.0)+map[0];
+		double shift;
+		if (center < 44){
+			LED2_On(1);
+			shift = ((center*2.25)/44.0)+3.5;
+		}
+		else if (center > 84){
+			LED2_On(2);
+			shift = (((center-84.0)*2.25)/44.0)+5.75;
+		}
+		TIMER_A2_PWM_DutyCycle(0.01*shift,1);*/
 	}
+	
 }
