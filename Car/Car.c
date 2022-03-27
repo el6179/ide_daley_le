@@ -174,8 +174,25 @@ int main(void) {
 		//myDelay(10);
 		
 		smoothData();
-		if (map[2] < 11000){stop();}
+		if ((map[1]-map[0]) < 45){
+			stop();
+		}
+		if(map[0] > 25){
+			LED2_On(1);
+			TIMER_A2_PWM_DutyCycle(0.035,1);
+		}
+		else if(map[1] < 115){
+			LED2_On(2);
+			TIMER_A2_PWM_DutyCycle(0.08,1);
+		}
+		else{
+			LED2_On(3);
+			TIMER_A2_PWM_DutyCycle(0.0575,1);
+		}
 		
+		
+		
+		/*
 		double center = ((map[1]-map[0])/2.0)+map[0];
 		double shift;
 		if (center < 64){
@@ -186,7 +203,7 @@ int main(void) {
 			LED2_On(2);
 			shift = 5.75-(((center-64.0)*2.25)/64.0);
 		}
-		TIMER_A2_PWM_DutyCycle(0.01*shift,1);
+		TIMER_A2_PWM_DutyCycle(0.01*shift,1);*/
 	}
 	
 }
