@@ -95,7 +95,8 @@ void stop(void){/*Stop Car*/
 
 void smoothData(void){
 	int max=0;
-	int j=0;
+	int j=1;
+	map[1] = 0;
 	if (g_sendData == TRUE){
 		for (int i=0;i<128;i++){
 			switch(i) {
@@ -146,14 +147,14 @@ int main(void) {
 	P3->OUT |= BIT6;
 	P3->OUT |= BIT7;
 	myDelay(50);
-	//forward();
+	forward();
 	LED1_Off();
 	LED2_On(3);
 	for(;;){
-		smoothData();
-		if (g_sendData == TRUE) 
+		//smoothData();
+		/*if (g_sendData == TRUE) 
 		{
-			LED1_On();/*
+			LED1_On();
 			// send the array over uart
 			sprintf(str,"%i, ",-1); // start value
 			uart0_put(str);
@@ -164,28 +165,28 @@ int main(void) {
 			}
 			sprintf(str,"%i\n\r",-2); // end value
 			uart0_put(str);
-			LED1_Off();*/
+			LED1_Off();
 			sprintf(str,"x1 = %i, x2 = %i, ymax = %i \n\r", map[0], map[1], map[2]);
 				uart0_put(str);
 			g_sendData = FALSE;
-		}
+		}*/
 		// do a small delay
-		myDelay(25);
-		/*
+		//myDelay(10);
+		
 		smoothData();
 		if (map[2] < 11000){stop();}
 		
 		double center = ((map[1]-map[0])/2.0)+map[0];
 		double shift;
-		if (center < 44){
+		if (center < 64){
 			LED2_On(1);
-			shift = ((center*2.25)/44.0)+3.5;
+			shift = 8-((center*2.25)/64.0);
 		}
-		else if (center > 84){
+		else if (center > 64){
 			LED2_On(2);
-			shift = (((center-84.0)*2.25)/44.0)+5.75;
+			shift = 5.75-(((center-64.0)*2.25)/64.0);
 		}
-		TIMER_A2_PWM_DutyCycle(0.01*shift,1);*/
+		TIMER_A2_PWM_DutyCycle(0.01*shift,1);
 	}
 	
 }
