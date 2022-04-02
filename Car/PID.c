@@ -25,6 +25,8 @@ static char str[100];
 uint16_t smooth[128];
 int map[3];
 
+float e[3], Vact = 0, pwm, err;
+
 void INIT_Camera(void){
 	g_sendData = FALSE;
 	ControlPin_SI_Init();
@@ -79,7 +81,6 @@ void leftWheel(double speed){
 		TIMER_A0_PWM_DutyCycle(speed, 2);
 	}
 }
-
 void rightWheel (double speed){
 	if (speed<0){
 		TIMER_A0_PWM_DutyCycle(-speed, 3);
@@ -92,6 +93,7 @@ void rightWheel (double speed){
 }
 
 void forward(double speed){
+	
 	leftWheel(speed);
 	rightWheel(speed);
 	/*
@@ -102,15 +104,16 @@ void forward(double speed){
 	*/
 }
 
-void backward(void){
-	/*
+void backward(double speed){
+	
 	leftWheel(-speed);
 	rightWheel(-speed);
-	*/
+	/*
 	TIMER_A0_PWM_DutyCycle(0.2, 1);	//Backwards Left
 	TIMER_A0_PWM_DutyCycle(0.0, 2);
 	TIMER_A0_PWM_DutyCycle(0.2, 3);	//Backwards Right
 	TIMER_A0_PWM_DutyCycle(0.0, 4);
+	*/
 }
 
 void stop(void){/*Stop Car*/
@@ -165,6 +168,17 @@ void myDelay(int del){
 	}
 }
 
+float PID(float Vdes) {
+	err = Vdes - Vact;
+	float kp=0.4, ki=0.6, kd=0.1;
+	pwm += kp*e[0] + ki*(e[0]-e[1])/2.0 + kd*(e[0]-2*e[1]+e[2]);
+	e[2] = e[1];
+	e[1] = e[0];
+	e[0] = err;
+	Vact = pwm;
+	return pwm;
+}
+
 int main(void) {
 	DisableInterrupts();
 	INIT(); //Initialize
@@ -179,18 +193,70 @@ int main(void) {
 	LED2_On(3);
 	for(;;){
 		smoothData();
-		float e[3],err, pwm;
-		double Vdes = 50.0,Vact = 20.0;
-		float Kp=0.45, Ki=0.15, Kd=0.20;
-		while (1) {
-			err = Vdes – Vact;
-			e[0] = err;
-			pwm += Kp*e[0] + Ki*(e[0]-e[1])/2 + Kd*(e[0] -2*e[1] + e[2]);
-			//pwm = clip(MotorSpeed,-100,+100)
-			e[2] = e[1];
-			e[1] = e[0];
-			e[0] = err;
+		/*
+		double center = ((map[1]-map[0])/2.0)+map[0];
+		sprintf(str,"x1 %i, x2 %i, x2-x1 %f \n\r", map[0], map[1], center);
+		uart2_put(str);
+		
+			TIMER_A2_PWM_DutyCycle(0.0975,1);
+			myDelay(100);
+			TIMER_A2_PWM_DutyCycle(0.15,1);
+			myDelay(100);
+			TIMER_A2_PWM_DutyCycle(0.26,1);
+			myDelay(100);
+		*/
+		/*
+		for (int i = 7; i<=26;i++){
+			LED2_On(i%7);
+			TIMER_A2_PWM_DutyCycle(0.01*i,1);
+			sprintf(str,"int i = %d", i);
+			uart2_put(str);
+			myDelay(100);
+		}*/
+		if ((map[1] - map[0]) < 35){
+			LED2_On(7);
+			sprintf(str,"x1 = %i, x2 = %i, x2-x1 = %i\n\r", map[0], map[1], map[1] - map[0]);
+			uart2_put(str);
+			stop();
+			//uart2_put("MOTHER HELP!!");
+			break;
 		}
+		else if((map[0] >= 15) && (map[0] < 54)){
+			LED2_On(1);
+			//forward(0.23);
+			rightWheel(0.22);
+			if ((map[0] >= 15) && (map[0] < 25)){
+				TIMER_A2_PWM_DutyCycle(0.035,1);
+			}
+			else if ((map[0] >= 25) && (map[0] < 54)){
+				TIMER_A2_PWM_DutyCycle(0.025,1);
+			}
+			sprintf(str,"Right : %i\n\r", map[0]);
+			uart2_put(str);
+			//uart2_put("Turn Right");
+		}
+		else if((map[1] > 74) && (map[1] <= 115)){
+			LED2_On(2);
+			//forward(0.23);
+			leftWheel(0.22);
+			if ((map[1] > 74) && (map[1] <= 100) ){
+				TIMER_A2_PWM_DutyCycle(0.075,1);
+			}
+			else if ((map[1] > 100) && (map[1] <= 115)){
+				TIMER_A2_PWM_DutyCycle(0.065,1);
+			}
+			sprintf(str,"Left : %i\n\r", map[1]);
+			uart2_put(str);
+			//uart2_put("Turn Left");
+		}
+		else{
+			LED2_On(3);
+			forward(0.24);
+			TIMER_A2_PWM_DutyCycle(0.05,1);
+			//uart2_put("Just Keep Swimming");
+		}
+		
+		
 	}
 	
 }
