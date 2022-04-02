@@ -1,6 +1,6 @@
 /*
 TI Car
-Author : Evon Le, Thomas Engine Daley
+Author : Evon Le, Thomas Daley
 */
 #include <math.h>
 #include <stdio.h>
