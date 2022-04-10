@@ -149,7 +149,16 @@ void myDelay(int del){
 	}
 }
 
-
+void PORT1_IRQHandler(void){
+    if(P1->IFG & BIT1){
+        P1->IFG &= ~BIT1;
+				P3->OUT |= BIT6;
+				P3->OUT |= BIT7;
+				myDelay(50);
+				forward(20,20);
+				LED2_On(3);
+    }
+}
 
 int main(void) {
 	DisableInterrupts();
@@ -226,7 +235,7 @@ int main(void) {
 			uart2_put(str);
 			stop();
 			//uart2_put("MOTHER HELP!!");
-			break;
+			continue;
 		}
 		
 		//shift = (-(0.25)*(center-50)) + 7.5;
