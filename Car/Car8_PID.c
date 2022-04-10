@@ -75,14 +75,14 @@ void forward(float speedL, float speedR){
 	
 	if (leftPID > max) {
 		 leftPID = max;
-	} else if (leftPID < 0) {
-		 leftPID = 0;
+	} else if (leftPID < 10) {
+		 leftPID = 10;
 	}
 	
 	if (rightPID > max) {
 		 rightPID = max;
-	} else if (rightPID < 0) {
-		 rightPID = 0;
+	} else if (rightPID < 10) {
+		 rightPID = 10;
 	}
 	
 	leftWheel(0.01*leftPID);
@@ -168,13 +168,17 @@ int main(void) {
 	uart0_put("Init Code\n\r");
 	P3->OUT |= BIT6;
 	P3->OUT |= BIT7;
-	myDelay(100);
 	LED1_Off();
-	LED2_On(3);
+	LED2_On(1);
+	myDelay(50);
+	LED2_On(6);
+	myDelay(50);
+	LED2_On(2);
+	//LED2_On(3);
 	
-	const float rightBaseSpeed = 25, leftBaseSpeed = 25;
-	float rightMotorSpeed, leftMotorSpeed, center, speedErr, posErr, lastPosErr, shift;
-  float kp = 0.375, ki = 0.6, kd = 0.25;	
+	 
+	float rightMotorSpeed, leftMotorSpeed, center, speedErr, posErr, lastPosErr, shift, baseSpeed = 27;
+  float kp = 0.375, ki = 0.5, kd = 0.35;	
 	
 	//sprintf(str,"p = %.2f, i = %.2f, d = %.2f\n\r", kp,ki,kd);
 	//uart2_put(str);
@@ -229,41 +233,54 @@ int main(void) {
 		
 		center = ((map[1]+map[0])/2.0);
 		
-		if ((map[1] - map[0]) < 35){
+		if ((map[1] - map[0]) < 30){
 			LED2_Off();
 			sprintf(str,"x1 = %i, x2 = %i, x2-x1 = %i\n\r", map[0], map[1], map[1] - map[0]);
 			uart2_put(str);
 			stop();
 			//uart2_put("MOTHER HELP!!");
-			continue;
+			break;
 		}
 		
 		//shift = (-(0.25)*(center-50)) + 7.5;
 		
 		shift = ((-(1.0/4.0))*(center-54.0)) + 7.5;
 		
+		// Max/Min steering
 		if (shift > 7.5) {
 			 shift = 7.5;
 		} else if (shift < 2.5) {
        shift = 2.5;
     }
 		
+		// Changing motor speed
+		if (shift < 5.2 && shift > 4.8) {
+			baseSpeed = 30;
+		} 
+		else {
+			baseSpeed = 27;
+		}
+		
 		sprintf(str,"shift = %.3f\n\r", shift);
 	  uart2_put(str);
 		
+		// Assign servo position
 		TIMER_A2_PWM_DutyCycle(0.01*shift, 1);
 		
+		// Calculate Positional Error
 		posErr = 64 - center;
 		speedErr = (kp * posErr) + (ki * (posErr + lastPosErr)/2) + (kd * (posErr - lastPosErr));
 		lastPosErr = posErr;
 		
-		rightMotorSpeed = rightBaseSpeed + speedErr;
-		leftMotorSpeed = leftBaseSpeed - speedErr;
+		// Apply error calculations
+		rightMotorSpeed = baseSpeed + speedErr;
+		leftMotorSpeed = baseSpeed - speedErr;
+		
+		// Set motors to adjusted speeds
+    forward(leftMotorSpeed, rightMotorSpeed);
 		
 		//sprintf(str, "RM Speed = %.3f\n\rLM Speed = %.3F\n\r", rightMotorSpeed, leftMotorSpeed);
 		//uart2_put(str);
-		
-    forward(leftMotorSpeed, rightMotorSpeed);
 		
 	}
 	
