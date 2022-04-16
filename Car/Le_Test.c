@@ -23,7 +23,7 @@ extern BOOLEAN g_sendData;
 
 static char str[100];
 
-float kp = 0.5, ki = 0.1, kd = 0.1;	
+float kp = 0.3, ki = 0.1, kd = 0.1;	
 
 uint16_t smooth[128];
 int map[3];
@@ -111,10 +111,14 @@ void myDelay(int del){
 	}
 }
 
-float PID(float error, float lastErr){
-	float correction = (kp * error) + (ki * (error + lastErr)/2) + (kd * (error - lastErr));;
-	
-	return correction;
+float PID(float Vdes, float e[], float Vact, float *pwm){
+	float err = Vdes - Vact;
+	*pwm += kp*(e[0]-e[1]) + ki*(e[0]+e[1])/2.0 + kd*(e[0]-2*e[1]+e[2]);
+	e[2] = e[1];
+	e[1] = e[0];
+	e[0] = err;
+	Vact = *pwm;
+	return *pwm;
 }
 
 int main(void) {
@@ -133,7 +137,7 @@ int main(void) {
 	LED2_On(2);
 	//LED2_On(3);
 	float lastErr = 0;
-	 
+	float el[3], er[3];
 	float rightMotorSpeed, leftMotorSpeed, center, speedErr, lastPosErr, shift, baseSpeed = 30;
 	float posErr, left, right, leftErr, rightErr;
 	
@@ -166,15 +170,15 @@ int main(void) {
 		TIMER_A2_PWM_DutyCycle(0.01*shift, 1);
 		
 		
-		posErr = (64 - center)*0.0375;
+		posErr = (64 - center)*0.1;
 		leftMotorSpeed = baseSpeed - posErr;
 		rightMotorSpeed = baseSpeed + posErr;
 		
-		left = PID(leftMotorSpeed, leftErr);
-		right = PID(rightMotorSpeed, rightErr);
+		left = PID(baseSpeed, el, leftMotorSpeed, &left);
+		right = PID(baseSpeed, er, rightMotorSpeed, &right);
     forward(leftMotorSpeed*0.01, rightMotorSpeed*0.01);
-		leftErr = left;
-		rightErr = right;
+		//leftErr = left;
+		//rightErr = right;
 		/*
 		// Calculate Positional Error
 		posErr = 64 - center;
