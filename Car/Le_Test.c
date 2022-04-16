@@ -1,6 +1,6 @@
 /*
 TI Car
-Author : Evon Le, Thomas Engine Daley
+Author : Evon Le, Thomas Daley
 */
 #include <math.h>
 #include <stdio.h>
@@ -10,67 +10,25 @@ Author : Evon Le, Thomas Engine Daley
 #include "Common.h"
 #include "ControlPins.h"
 #include "CortexM.h"
-#include "Init.h"
 #include "leds.h"
 #include "msp.h"
 #include "switches.h"
 #include "SysTickTimer.h"
 #include "TimerA.h"
 #include "uart.h"
+#include "Init.h"
 
 extern uint16_t line[128];
 extern BOOLEAN g_sendData;
 
 static char str[100];
 
+float kp = 0.5, ki = 0.1, kd = 0.1;	
+
 uint16_t smooth[128];
 int map[3];
-/*
-void INIT_Camera(void){
-	g_sendData = FALSE;
-	ControlPin_SI_Init();
-	ControlPin_CLK_Init();
-	ADC0_InitSWTriggerCh6();
-}
 
-void INIT_Motors(void){
-	// Init DC Motor timers
-	uint16_t freq = 10000; // Frequency = 10 kHz 
-	TIMER_A0_PWM_Init(SystemCoreClock/(freq*4), 0.0, 1);
-  TIMER_A0_PWM_Init(SystemCoreClock/(freq*4), 0.0, 2);
-	TIMER_A0_PWM_Init(SystemCoreClock/(freq*4), 0.0, 3);
-  TIMER_A0_PWM_Init(SystemCoreClock/(freq*4), 0.0, 4);
-	// Init Motor Enable
-	P3->SEL0 &= ~BIT6;
-	P3->SEL1 &= ~BIT6;
-  P3->DIR |= BIT6;
-	P3->OUT &= ~BIT6;
-	
-	P3->SEL0 &= ~BIT7;
-	P3->SEL1 &= ~BIT7;
-  P3->DIR |= BIT7;
-	P3->OUT &= ~BIT7;
-	
-	// Center Servo Motor
-	TIMER_A2_PWM_Init(SystemCoreClock/(50*4), 0.05, 1);
-}
-
-void INIT(){
-	// INIT Camera
-	INIT_Camera();
-	// INIT Motors
-	INIT_Motors();
-	
-	//UART, LED, SWITCHES INITS
-	uart0_init();
-	uart2_init();
-	LED1_Init();
-	LED2_Init();
-	Switch1_Init();
-	Switch2_Init();
-}
-*/
-void leftWheel(double speed){
+void leftWheel(float speed){
 	if (speed<0){
 		TIMER_A0_PWM_DutyCycle(-speed, 1);
 		TIMER_A0_PWM_DutyCycle(0.0, 2);
@@ -80,7 +38,7 @@ void leftWheel(double speed){
 		TIMER_A0_PWM_DutyCycle(speed, 2);
 	}
 }
-void rightWheel (double speed){
+void rightWheel (float speed){
 	if (speed<0){
 		TIMER_A0_PWM_DutyCycle(-speed, 3);
 		TIMER_A0_PWM_DutyCycle(0.0, 4);
@@ -91,30 +49,9 @@ void rightWheel (double speed){
 	}
 }
 
-float clip(float pwm){
-	float min = 0.0, max = 40.0;
-	if (pwm > max) {
-		 pwm = max;
-	} else if (pwm < min) {
-		 pwm = min;
-	}
-	return pwm;
-}
-
-float PID(float Vdes, float e[], float Vact, float pwm) {
-	double err = Vdes - Vact;
-	double kp=0.4, ki=0.6, kd=0.1;
-	pwm += kp*e[0] + ki*(e[0]-e[1])/2.0 + kd*(e[0]-2*e[1]+e[2]);
-	e[2] = e[1];
-	e[1] = e[0];		
-	e[0] = err;
-	pwm = clip(pwm);
-	return pwm;
-}
-
-void forward(float speed){
-	leftWheel(speed);
-	rightWheel(speed);
+void forward(float speedL, float speedR){
+	leftWheel(speedL);
+	rightWheel(speedR);
 }
 
 void backward(double speed){
@@ -123,7 +60,7 @@ void backward(double speed){
 }
 
 void stop(void){/*Stop Car*/
-	forward(0.0);/*backward(0.0) should produce same result*/
+	forward(0.0, 0.0);/*backward(0.0) should produce same result*/
 	//Disable Motor
 	P3->OUT &= ~BIT6;
 	P3->OUT &= ~BIT7;
@@ -174,6 +111,12 @@ void myDelay(int del){
 	}
 }
 
+float PID(float error, float lastErr){
+	float correction = (kp * error) + (ki * (error + lastErr)/2) + (kd * (error - lastErr));;
+	
+	return correction;
+}
+
 int main(void) {
 	DisableInterrupts();
 	INIT(); //Initialize
@@ -182,79 +125,70 @@ int main(void) {
 	uart0_put("Init Code\n\r");
 	P3->OUT |= BIT6;
 	P3->OUT |= BIT7;
-	myDelay(100);
-	//float e[3],el[3],er[3],vact = 0,pwm;
-	//pwm = PID(20,e,vact,pwm);
-	forward(0.3);
-	//vact = pwm;
-	float error = 0,motorspeed = 0, kp=0.4, kd=0.1, lasterr = 0;
 	LED1_Off();
-	LED2_On(3);
+	LED2_On(1);
+	myDelay(25);
+	LED2_On(6);
+	myDelay(25);
+	LED2_On(2);
+	//LED2_On(3);
+	float lastErr = 0;
+	 
+	float rightMotorSpeed, leftMotorSpeed, center, speedErr, lastPosErr, shift, baseSpeed = 30;
+	float posErr, left, right, leftErr, rightErr;
+	
+	forward(30, 30);
+	
 	for(;;){
-		//sprintf(str,"Speed %.1f\n\r", vact);
-		//uart2_put(str);
 		smoothData();
-		double center = ((map[1]+map[0])/2.0);
-		sprintf(str,"x1 = %i, xc = %.0f, x2 =  %i\n\r", map[0], center, map[1]);
-		uart2_put(str);
-		if ((map[1] - map[0]) < 35){
-			LED2_On(7);
-			stop();
+		center = ((map[1]+map[0])/2.0);
+		/*Carpet Detection*/
+		if ((map[1] - map[0]) < 30){
+			LED2_Off();
+			sprintf(str,"x1 = %i, x2 = %i\n\r", map[0], map[1]);
+			uart2_put(str);
+			backward(0.25);
+			//stop();
 			//uart2_put("MOTHER HELP!!");
-			break;
+			continue;
 		}
-		else if((map[0] >= 15) && (map[0] < 54)){
-			LED2_On(1);
-			if ((map[0] >= 15) && (map[0] < 25)){
-				//pwm = PID(20,e,vact,pwm);
-				TIMER_A2_PWM_DutyCycle(0.035,1);
-			}else if ((map[0] >= 25) && (map[0] < 54)){
-				//pwm = PID(20,e,vact,pwm);
-				TIMER_A2_PWM_DutyCycle(0.025,1);
-			}
-			//sprintf(str,"Right : %i\n\r", map[0]);
-			//uart2_put(str);
-			//uart2_put("Turn Right");
-		}
-		else if((map[1] > 74) && (map[1] <= 115)){
-			LED2_On(2);
-			if ((map[1] > 74) && (map[1] <= 100) ){
-				//pwm = PID(20,e,vact,pwm);
-				TIMER_A2_PWM_DutyCycle(0.075,1);
-			}
-			else if ((map[1] > 100) && (map[1] <= 115)){
-				//pwm = PID(20,e,vact,pwm);
-				TIMER_A2_PWM_DutyCycle(0.065,1);
-			}
-			//sprintf(str,"Left : %i\n\r", map[1]);
-			//uart2_put(str);
-			//uart2_put("Turn Left");
-		}
-		else{
-			LED2_On(3);
-			//pwm = PID(20,e,vact,pwm);
-			TIMER_A2_PWM_DutyCycle(0.05,1);
-			//uart2_put("Just Keep Swimming");
-		}
+		/*Steering*/
+		shift = ((-(1.0/4.0))*(center-54.0)) + 7.5;
+		// Max/Min steering
+		if (shift > 7.5) {
+			 shift = 7.5;
+		} else if (shift < 2.5) {
+       shift = 2.5;
+    }
+		sprintf(str,"shift = %.3f\n\r", shift);
+	  uart2_put(str);
+		// Assign servo position
+		TIMER_A2_PWM_DutyCycle(0.01*shift, 1);
+		
+		
+		posErr = (64 - center)*0.0375;
+		leftMotorSpeed = baseSpeed - posErr;
+		rightMotorSpeed = baseSpeed + posErr;
+		
+		left = PID(leftMotorSpeed, leftErr);
+		right = PID(rightMotorSpeed, rightErr);
+    forward(leftMotorSpeed*0.01, rightMotorSpeed*0.01);
+		leftErr = left;
+		rightErr = right;
 		/*
-		rightWheel(0.01*pwm);
-		leftWheel(0.01*pwm);
-		vact = pwm;
+		// Calculate Positional Error
+		posErr = 64 - center;
+		corErr = PID(posErr);
+		speedErr = (kp * posErr) + (ki * (posErr + lastPosErr)/2) + (kd * (posErr - lastPosErr));
+		lastPosErr = posErr;
+		
+		// Apply error calculations
+		rightMotorSpeed = baseSpeed + speedErr;
+		leftMotorSpeed = baseSpeed - speedErr;
+		
+		// Set motors to adjusted speeds
+    forward(leftMotorSpeed*0.01, rightMotorSpeed*0.01);
 		*/
-		error = 64-center;
-		/*
-		if (error < 0){
-			TIMER_A2_PWM_DutyCycle(0.025,1);
-		}
-		else if (error > 0){
-			TIMER_A2_PWM_DutyCycle(0.075,1);
-		}
-		else{
-			TIMER_A2_PWM_DutyCycle(0.05,1);
-		}*/
-		motorspeed = kp*error + kd*(error - lasterr);
-		rightWheel((30+motorspeed)*0.01);
-		leftWheel((30-motorspeed)*0.01);
 	}
 	
 }
