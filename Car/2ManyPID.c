@@ -226,9 +226,9 @@ int main(void) {
 			sprintf(str,"x1 = %i, x2 = %i\n\r", map[0], map[1]);
 			uart2_put(str);
 			backward(0.25);
-			stop();
+			//stop();
 			//uart2_put("MOTHER HELP!!");
-			break;
+			continue;
 		}
 		
 		shift = ((-(1.0/4.0))*(center-54.0)) + 7.5;
