@@ -225,6 +225,7 @@ int main(void) {
 			LED2_Off();
 			sprintf(str,"x1 = %i, x2 = %i\n\r", map[0], map[1]);
 			uart2_put(str);
+			TIMER_A2_PWM_DutyCycle(0.05, 1);
 			backward(0.25);
 			//stop();
 			//uart2_put("MOTHER HELP!!");
