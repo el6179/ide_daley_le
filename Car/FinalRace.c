@@ -28,7 +28,7 @@ uint16_t smooth[128];
 int map[3];
 int setMode = 1;
 
-float el[3], er[3], VLact = 0, VRact = 0, pwml, pwmr, lastPosErr;
+float el[3], er[3], VLact = 0, VRact = 0, pwml, pwmr;
 float kp = 0.29, ki = 0.05, kd = 0.22;
 float baseSpeed;
 
@@ -120,7 +120,7 @@ void smoothData(void){
 	int j=1;
 	map[1] = 0;
 	
-	/* Take 5-point rolling average of Camera Data*/
+	/* Take moving 5-point average of Camera Data */
 	
 	if (g_sendData == TRUE){
 		for (int i=0;i<128;i++){
@@ -186,6 +186,8 @@ int main(void) {
 	P3->OUT |= BIT6;
 	P3->OUT |= BIT7;
 	
+	// Wait for a switch press to select the mode
+	// Modes - Slow mode, Fast mode
 	while(setMode){
 		WaitForInterrupt();
 	}
