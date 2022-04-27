@@ -81,9 +81,6 @@ void forward(float speed, float posErr){
 	if (x > 5) {
     multiplier = (0.00416667*x*x) + (0.00833333*x) + 0.1875;
 	} 
-	else if (x >= 13) {
-		multiplier = 1;
-	}
 	else {
 	  multiplier = 0;
 	}
